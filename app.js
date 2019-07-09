@@ -34,6 +34,7 @@ app.post('/AddSocialUser',UserAuthController.SocialLogin);
 
  app.get('/findall/:id',UserAuthController.findall);
 
+ app.post('/stripepayment', UserAuthController.paymentStripe);
 
 // Admin Section
 

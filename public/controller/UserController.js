@@ -2,6 +2,8 @@ const mongoose = require('mongoose');
 const CommenModal = require('../modal/Commenmodal');
 const jwt= require('jsonwebtoken');
 const ObjectId = require('mongoose').Types.ObjectId;
+var async = require("async");
+const stripe_payment = require('stripe')('sk_test_9x4rYVKwymxdZ3kHHeC2wLr700dbxtJtKa');
 
 exports.Registeruser = ((req,res)=> {
 
@@ -161,20 +163,46 @@ exports.AddTocart = ((req,res)=> {
 
 });
 
-exports.findall = ((req, res) => {
+exports.findall = (async (req, res) => {
  const ids = req.params.id;
- var prodlist = [];
- const splitedids = ids.split(',');
-
-  splitedids.forEach(element => {
-    mongoose.connection.db.collection('product').findOne({_id: ObjectId(element)}, (err, result) => {
-      if (err) res.status(403).send('server error');
-      if (result != null)
-      {    
-        prodlist.push(result);
-      }
-   //   
-      });
-          
- });
+ let splitedids = ids.split(',');
+ if (splitedids == null && splitedids == undefined && splitedids == ""){
+   splitedids = ids;
+ }
+ splitedids = splitedids.map(sp => ObjectId(sp));
+try{
+  await mongoose.connection.db.collection('product').find({ _id : { $in : splitedids}}).toArray((err, result)=>{
+    if(err){
+      return res.status(404).json({status : 0, message : 'something went wrong'});
+    }
+    return res.status(200).send(result);
+  });
+}catch(e){
+  res.status(200).send({ status : 0, message : 'no data found'});
+  console.log('\n Err : ', e);
+}
 });
+
+exports.paymentStripe =  (req,res) =>{
+
+  const PaymentData = {
+    Token: req.body.token,
+    Email: req.body.Email,
+    Price: req.body.Price
+  };
+
+
+  var charge =  stripe_payment.charges.create({
+    amount: PaymentData.Price,
+    currency:'usd',
+    source:PaymentData.Token,
+    statement_descriptor: 'Custom descriptor',
+    receipt_email: PaymentData.Email,
+    description: 'App cart charge',
+  },(err,result)=>{
+    if (err) res.send(err);
+    res.status(200).send(result);
+    res.end();
+  });
+
+}
