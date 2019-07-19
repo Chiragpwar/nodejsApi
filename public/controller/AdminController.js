@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const modal = require('../modal/Commenmodal');
 const jwt = require('jsonwebtoken');
-
+const dbconnection = require('../DbConnection/DBConnection');
 exports.ProductEntry = ((req,res)=>{
 jwt.verify(req.token,'Secretkey', (err,result) => {
     if (err) res.status(403).send('forbidden');
@@ -24,11 +24,17 @@ jwt.verify(req.token,'Secretkey', (err,result) => {
 });
 
 exports.GetAllproduct = ((req,res)=>{
-
+  
+ if (mongoose.connection.readyState == 0){
+    dbconnection.DbConnect();
+ }
+  setTimeout(() => {
     mongoose.connection.db.collection('product').find({}).toArray((err,result)=>{
         if (err) res.status(500).send('Server error');
         if (result != null){
             res.status(200).send(JSON.stringify(result));
         }
     })
+  },2000);
+   
 })

@@ -4,6 +4,7 @@ app.use(express.json());
 const UserAuthController = require('./public/controller/UserController');
 const AdminAuthController = require('./public/controller/AdminController');
 const DbAuth = require('./public/DbConnection/DBConnection');
+
 app.use(function (req, res, next) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
@@ -12,6 +13,7 @@ app.use(function (req, res, next) {
     next();
 });
 
+app.get('/pdf',UserAuthController.pdfshow);
 
 app.get('/', DbAuth.DbConnect);
 
@@ -42,6 +44,13 @@ app.post('/AddProducts', varifyToken,AdminAuthController.ProductEntry);
 
 app.get('/GetAllproducts',AdminAuthController.GetAllproduct);
 
+app.get('/braintree',UserAuthController.braintreepayment);
+
+app.get('/paypalpayment',UserAuthController.paypalpayment);
+
+app.get('/Googledrive', UserAuthController.Adddataondrive);
+
+app.get('/oauth2callback', UserAuthController.callbacks);
 
 function varifyToken(req, res, next)
 {

@@ -2,8 +2,18 @@ const mongoose = require('mongoose');
 const CommenModal = require('../modal/Commenmodal');
 const jwt= require('jsonwebtoken');
 const ObjectId = require('mongoose').Types.ObjectId;
+const PDFDocument = require('pdfkit');
+const fs = require('fs');
+const doc = new PDFDocument();
+const path = require('path');
 var async = require("async");
 const stripe_payment = require('stripe')('sk_test_9x4rYVKwymxdZ3kHHeC2wLr700dbxtJtKa');
+var braintree = require('braintree');
+var paypal = require('paypal-rest-sdk');
+const readline = require('readline');
+const {google} = require('googleapis');
+const OAuth2 = google.auth.OAuth2;
+const config = require('../config/configurtion');
 
 exports.Registeruser = ((req,res)=> {
 
@@ -206,3 +216,198 @@ exports.paymentStripe =  (req,res) =>{
   });
 
 }
+
+exports.pdfshow = (req,res) => {
+
+  doc.pipe(fs.createWriteStream('output.pdf'));
+  const pathfont = path.join(__dirname , "../../font/paltno.ttf");
+  doc.font(pathfont)
+   .fontSize(25)
+   .text('Some text with an embedded font!', 100, 100);
+
+//    doc.image('path/to/image.png', {
+//     fit: [250, 300],
+//     align: 'center',
+//     valign: 'center'
+//  });
+
+ doc.addPage()
+   .fontSize(25)
+   .text('Here is some vector graphics...', 100, 100);
+
+   doc.save()
+   .moveTo(100, 150)
+   .lineTo(100, 250)
+   .lineTo(200, 250)
+   .fill("#FF3300");
+
+   doc.scale(0.6)
+   .translate(470, -380)
+   .path('M 250,75 L 323,301 131,161 369,161 177,301 z')
+   .fill('red', 'even-odd')
+   .restore();
+
+   doc.addPage()
+   .fillColor("blue")
+   .text('Here is a link!', 100, 100)
+   .underline(100, 100, 160, 27, {color: "#0000FF"})
+   .link(100, 100, 160, 27, 'http://google.com/');
+ 
+// Finalize PDF file
+doc.end();
+  
+}
+
+exports.braintreepayment = (req,res) => {
+
+  var gateway = new braintree.BraintreeGateway({
+    environment: braintree.Environment.Sandbox,
+    merchantId: 'wkb34nzn6sbpvn4r',
+    publicKey: 'rg89hrc87nxx5qng',
+    privateKey: '8192c7bcca6a5252d4d53a8794951b61'
+  });
+
+  gateway.transaction.sale({
+    amount: '100.00',
+    customer : {              
+     firstName : 'chirag',
+     lastName: 'pawar',
+     email: 'pawarcrg@live.com',
+     phone: '9979901785', 
+    },
+    creditCard :{
+     cardholderName: 'chirag',
+     cvv:'555',
+     expirationMonth: '05',
+     expirationYear: '35',                                                 
+     number: '5555555555554444'
+    },
+    billing :{
+    firstName: 'chirag',
+    company: 'test_chirag',
+    countryName: 'india',
+    lastName: 'pawar',
+    postalCode:'395009',
+    streetAddress: '401, vandan apartment'  
+    },
+    paymentMethodNonce: 'nonce-from-the-client',
+    options: {
+      submitForSettlement: true
+    }
+  }, function (err, result) {
+    if (err) {
+      console.error(err);
+      return;
+    }
+  
+    if (result.success) {
+      console.log('Transaction ID: ' + result.transaction.id);
+    } else {
+      console.error(result.message);
+    }
+  });
+
+}
+
+exports.paypalpayment = ((req, res) => {
+ 
+  paypal.configure({
+    'mode': 'sandbox', //sandbox or live
+    'client_id': 'ARBe9uS3y58d3_T9jf-zqCPZ8KnH2H_ECuBPOvhl84qSJZBljCRZKmngfmDeeYP5fM3wJ1Jh8oJ5p-gv',
+    'client_secret': 'EPs4kYpyE8JMBVRv1Ge4TIkBYAvrPTHujxr9phfzJtL-vAqn9rJA1ePjBBEag8AUWiKMOna4mcrXF0kF'
+  });
+
+  var create_payment_json = {
+    "intent": "sale",
+    "payer": {
+        "payment_method": "paypal"
+    },
+    "redirect_urls": {
+        "return_url": "http://return.url",
+        "cancel_url": "http://cancel.url"
+    },
+    "transactions": [{
+        "item_list": {
+            "items": [{
+                "name": "Jeans",
+                "sku": "item",
+                "price": "1.00",
+                "currency": "USD",
+                "quantity": 1
+            }]
+        },
+        "amount": {
+            "currency": "USD",
+            "total": "1.00"
+        },
+        "description": "This is the payment description."
+    }]
+};
+
+paypal.payment.create(create_payment_json, function (error, payment) {
+  if (error) {
+      throw error;
+  } else {
+      console.log("Create Payment Response");
+      res.status(200).send(payment);
+  }
+});
+});
+
+exports.Adddataondrive = ((req, res) => {
+
+  const oauth2Client = new google.auth.OAuth2(
+    '268181517598-ksrkm9i6r4nj5lm1rvk6uri0fb3fm2q6.apps.googleusercontent.com',
+    'EZf9RQX53HmfW1hocYyT8fA3',
+    'http://localhost:3000/oauth2callback'
+  );
+  const scopes = [
+    "https://www.googleapis.com/auth/drive"
+  ];
+
+  const url = oauth2Client.generateAuthUrl({
+    access_type: 'offline',
+
+    scope: scopes
+  });
+    console.log(url)
+
+});
+
+exports.callbacks = ((req,res) =>  {
+
+  const pathimg = path.join(__dirname, '../images/b2.jpg');  
+  const oauth2Client = new google.auth.OAuth2(
+    '268181517598-ksrkm9i6r4nj5lm1rvk6uri0fb3fm2q6.apps.googleusercontent.com',
+    'EZf9RQX53HmfW1hocYyT8fA3',
+    'http://localhost:3000/oauth2callback'
+  );
+    async function token(){
+      const oauth2Client = new google.auth.OAuth2(
+        '268181517598-ksrkm9i6r4nj5lm1rvk6uri0fb3fm2q6.apps.googleusercontent.com',
+        'EZf9RQX53HmfW1hocYyT8fA3',
+        'http://localhost:3000/oauth2callback'
+      );
+      const {tokens} = await oauth2Client.getToken(req.query.code)
+      oauth2Client.credentials = {
+        refresh_token: tokens.refresh_token
+      };
+      oauth2Client.refreshAccessToken(function(err, tokens){
+        oauth2Client.credentials = {access_token : tokens.access_token}
+      });
+      const chirag = google.drive({ version: 'v3', auth : oauth2Client });
+
+const result =  chirag.files.create({
+      requestBody: {
+        name: 'testimage.png',
+        mimeType: 'image/png'
+      },
+      media: {
+        mimeType: 'image/png',      
+        body: fs.createReadStream(pathimg)
+      }
+    });
+  }
+  token().catch(console.error);
+   
+});
