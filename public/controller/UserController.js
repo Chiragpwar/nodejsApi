@@ -6,15 +6,12 @@ const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const doc = new PDFDocument();
 const path = require('path');
-var async = require("async");
 const stripe_payment = require('stripe')('sk_test_9x4rYVKwymxdZ3kHHeC2wLr700dbxtJtKa');
 var braintree = require('braintree');
 var paypal = require('paypal-rest-sdk');
-const readline = require('readline');
 const {google} = require('googleapis');
-const OAuth2 = google.auth.OAuth2;
-const config = require('../config/configurtion');
-
+const _  = require('underscore');
+const request = require('request');
 exports.Registeruser = ((req,res)=> {
 
     const UserData = new CommenModal.RegisterModal ({    
@@ -159,7 +156,7 @@ exports.SocialLogin = ((req,res)=>{
       })
     })
 });
-
+     
 exports.AddTocart = ((req,res)=> {
  const cartData = {
   ProductName: req.body.ProductName,
@@ -217,7 +214,7 @@ exports.paymentStripe =  (req,res) =>{
 
 }
 
-exports.pdfshow = (req,res) => {
+exports.pdfshow = (req,res) => { 
 
   doc.pipe(fs.createWriteStream('output.pdf'));
   const pathfont = path.join(__dirname , "../../font/paltno.ttf");
@@ -367,21 +364,16 @@ exports.Adddataondrive = ((req, res) => {
 
   const url = oauth2Client.generateAuthUrl({
     access_type: 'offline',
-
     scope: scopes
   });
-    console.log(url)
+ 
+    res.status(200).send(url);
 
 });
 
 exports.callbacks = ((req,res) =>  {
 
   const pathimg = path.join(__dirname, '../images/b2.jpg');  
-  const oauth2Client = new google.auth.OAuth2(
-    '268181517598-ksrkm9i6r4nj5lm1rvk6uri0fb3fm2q6.apps.googleusercontent.com',
-    'EZf9RQX53HmfW1hocYyT8fA3',
-    'http://localhost:3000/oauth2callback'
-  );
     async function token(){
       const oauth2Client = new google.auth.OAuth2(
         '268181517598-ksrkm9i6r4nj5lm1rvk6uri0fb3fm2q6.apps.googleusercontent.com',
@@ -397,17 +389,155 @@ exports.callbacks = ((req,res) =>  {
       });
       const chirag = google.drive({ version: 'v3', auth : oauth2Client });
 
-const result =  chirag.files.create({
-      requestBody: {
-        name: 'testimage.png',
-        mimeType: 'image/png'
-      },
-      media: {
-        mimeType: 'image/png',      
-        body: fs.createReadStream(pathimg)
-      }
-    });
+        const result =  chirag.files.create({
+              requestBody: {
+                name: 'testimage.png',
+                mimeType: 'image/png'
+              },
+              media: {
+                mimeType: 'image/png',      
+               // body: fs.createReadStream(pathimg)
+               body : 'https://images.pexels.com/photos/414612/pexels-photo-414612.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500'
+              }
+            });
   }
   token().catch(console.error);
    
 });
+
+exports.Youtubedata = ((req, res) => {
+
+  const oauth2Client = new google.auth.OAuth2(
+    '268181517598-ksrkm9i6r4nj5lm1rvk6uri0fb3fm2q6.apps.googleusercontent.com',
+    'EZf9RQX53HmfW1hocYyT8fA3',
+    'http://localhost:3000/channelList'
+  );
+  const scopes = [
+    "https://www.googleapis.com/auth/youtube.readonly"
+  ];
+
+  const url = oauth2Client.generateAuthUrl({
+    access_type: 'offline',
+    scope: scopes
+  });
+    res.status(200).send(url);
+
+});
+
+exports.channelList = ((req,res)=> {
+
+  async function Youtubedata(){
+
+
+    const oauth2Client = new google.auth.OAuth2(
+      '268181517598-ksrkm9i6r4nj5lm1rvk6uri0fb3fm2q6.apps.googleusercontent.com',
+      'EZf9RQX53HmfW1hocYyT8fA3',
+      'http://localhost:3000/channelList'
+    );
+    const {tokens} = await oauth2Client.getToken(req.query.code);
+    oauth2Client.credentials = tokens;
+
+    var service = google.youtube('v3');
+    service.channels.list({
+      auth: oauth2Client,
+      part: 'snippet,contentDetails,statistics',
+      forUsername: 'GoogleDevelopers'
+    }, function(err, response) {
+      if (err) {
+        console.log('The API returned an error: ' + err);
+        return;
+      }
+      debugger
+      var channels = response.data.items;
+      res.send(channels);
+      if (channels.length == 0) {
+        console.log('No channel found.');
+      } else {
+        console.log('This channel\'s ID is %s. Its title is \'%s\', and ' +
+                    'it has %s views.',
+                    channels[0].id,
+                    channels[0].snippet.title,
+                    channels[0].statistics.viewCount);
+      }
+    });
+  }
+  Youtubedata().catch(console.error) 
+});
+
+exports.youtubevideo = ((req, res) => {
+  
+  const channelId = req.params.channelId;
+   const ApiYoutube = 'AIzaSyA8R3un4hDo1gaNynVlXO-ifcFoCrS4sT0';
+   const url = 'https://www.googleapis.com/youtube/v3/search?key='+ApiYoutube+'&channelId='+channelId+'&part=snippet,id&order=date&maxResults=15'
+  request(url, { json: true }, (err, result, body) => {
+  if (err) { return console.log(err); }
+    res.status(200).send(body);
+});
+
+})
+
+
+exports.getGoogleMail = ((req, res) => {
+      const oauth2Client = new google.auth.OAuth2(
+        '268181517598-ksrkm9i6r4nj5lm1rvk6uri0fb3fm2q6.apps.googleusercontent.com',
+        'EZf9RQX53HmfW1hocYyT8fA3',
+        'http://localhost:4200'
+      );
+    const scopes = [
+      "https://www.googleapis.com/auth/gmail.readonly"
+    ];
+
+    const url = oauth2Client.generateAuthUrl({
+      access_type: 'online',
+      scope: scopes
+    });
+    res.status(200).send(JSON.stringify(url));
+   // res.send(url);
+});
+
+exports.GmailCallback = ((req,res) => {
+   const code = req.body.code;
+  async function token(){
+    const oauth2Client = new google.auth.OAuth2(
+      '268181517598-ksrkm9i6r4nj5lm1rvk6uri0fb3fm2q6.apps.googleusercontent.com',
+      'EZf9RQX53HmfW1hocYyT8fA3',
+      'http://localhost:4200'
+    );
+    const {tokens} = await oauth2Client.getToken(code)
+       oauth2Client.setCredentials(tokens);
+     const gmail = google.gmail({version: 'v1', auth: oauth2Client});
+     gmail.users.threads.list({
+      userId: 'me',
+      labelIds:  'INBOX',
+      'maxResults': 10
+      }, (err, result) => {
+      if (err) return console.log('The API returned an error: ' + err);
+      const labels = result.data.threads;
+       var  mail = [];
+      labels.forEach(element => {
+        gmail.users.messages.get({
+          userId: 'me',
+          id: element.id
+        }, (err, resultdata) => {
+          if (err) return console.log('The API returned an error: ' + err);
+         // mail += resultdata.data;
+          mail.push(resultdata['data']);
+          if (mail.length >= 10){
+            res.send(mail);
+          }
+        })
+      });
+       
+      if (labels.length) {
+        // console.log('Labels:', object);
+        console.log('Labels:',  labels .length);
+       // res.send(labels)
+      } else {
+        console.log('No labels found.');
+      }
+    });
+
+  }
+  token().catch(console.error);
+});
+

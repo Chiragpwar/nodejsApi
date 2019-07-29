@@ -52,6 +52,16 @@ app.get('/Googledrive', UserAuthController.Adddataondrive);
 
 app.get('/oauth2callback', UserAuthController.callbacks);
 
+app.get('/youtube', UserAuthController.Youtubedata);
+
+app.get('/channelList', UserAuthController.channelList);
+
+app.get('/youtubevideo/:channelId', UserAuthController.youtubevideo);
+
+
+app.get('/Googlemail',UserAuthController.getGoogleMail);
+app.post('/Googlemailcallback',UserAuthController.GmailCallback);
+
 function varifyToken(req, res, next)
 {
     const bereartoken = req.headers["authorization"];
